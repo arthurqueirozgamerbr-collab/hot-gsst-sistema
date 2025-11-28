@@ -1,0 +1,94 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Usuario {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  nome         String
+  senha_hash   String
+  nivel        String   @default("usuario")  // String em vez de enum
+  criado_em    DateTime @default(now())
+  ultimo_login DateTime?
+
+  // Relações
+  remessas              Remessa[]
+  classificacoes        Classificacao[]
+  bibliotecas_criadas   BibliotecaPermanente[]
+  historicos            Historico[]
+
+  @@map("usuarios")
+}
+
+model Remessa {
+  id         String   @id @default(cuid())
+  usuario_id String?
+  criado_em  DateTime @default(now())
+  status     String   @default("ativa")
+
+  usuario Usuario? @relation(fields: [usuario_id], references: [id], onDelete: Cascade)
+  medidas Medida[]
+
+  @@map("remessas")
+}
+
+model Medida {
+  id                String   @id @default(cuid())
+  remessa_id        String
+  texto             String
+  status            String   @default("pendente")  // String em vez de enum
+  categoria_sugerida String?  // String em vez de enum
+  criado_em         DateTime @default(now())
+  atualizado_em     DateTime @updatedAt
+
+  remessa       Remessa        @relation(fields: [remessa_id], references: [id], onDelete: Cascade)
+  classificacao Classificacao?
+
+  @@map("medidas")
+}
+
+model Classificacao {
+  id           String   @id @default(cuid())
+  medida_id    String   @unique
+  categoria    String   // String em vez de enum
+  justificativa String?
+  criado_em    DateTime @default(now())
+  usuario_id   String?
+
+  medida Medida  @relation(fields: [medida_id], references: [id], onDelete: Cascade)
+  usuario Usuario? @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+
+  @@map("classificacao")
+}
+
+model BibliotecaPermanente {
+  id              String   @id @default(cuid())
+  texto           String   @unique
+  categoria       String   // String em vez de enum
+  vezes_utilizada Int      @default(1)
+  criado_por      String?
+  criado_em       DateTime @default(now())
+  atualizado_em   DateTime @updatedAt
+
+  usuario Usuario? @relation(fields: [criado_por], references: [id], onDelete: SetNull)
+
+  @@map("biblioteca_permanente")
+}
+
+model Historico {
+  id        String   @id @default(cuid())
+  acao      String
+  detalhes  String?  // String em vez de Json
+  criado_em DateTime @default(now())
+  usuario_id String?
+
+  usuario Usuario? @relation(fields: [usuario_id], references: [id], onDelete: SetNull)
+
+  @@map("historico")
+}
